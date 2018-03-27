@@ -1,6 +1,6 @@
 {
   "name": "webrtc-signal",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "\"WebRTC Signalling Relay Server\"",
   "main": "index.js",
   "scripts": {
