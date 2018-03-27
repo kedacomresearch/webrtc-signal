@@ -1,0 +1,23 @@
+{
+  "name": "webrtc-signal",
+  "version": "0.1.0",
+  "description": "\"WebRTC Signalling Relay Server\"",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kedacomresearch/webrtc-signal.git"
+  },
+  "keywords": [
+    "WebRTC",
+    "Signal"
+  ],
+  "author": "Cao Gan",
+  "license": "LGPL-2.1",
+  "bugs": {
+    "url": "https://github.com/kedacomresearch/webrtc-signal/issues"
+  },
+  "homepage": "https://github.com/kedacomresearch/webrtc-signal#readme"
+}
