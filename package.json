@@ -14,10 +14,13 @@
     "WebRTC",
     "Signal"
   ],
-  "author": "Cao Gan",
+  "author": "Chao Gan",
   "license": "LGPL-2.1",
   "bugs": {
     "url": "https://github.com/kedacomresearch/webrtc-signal/issues"
   },
-  "homepage": "https://github.com/kedacomresearch/webrtc-signal#readme"
+  "homepage": "https://github.com/kedacomresearch/webrtc-signal#readme",
+  "dependencies": {
+    "socket.io": "^2.0.4"
+  }
 }

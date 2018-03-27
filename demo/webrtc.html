@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+    <title>MediaElement.js Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+<video id="mediaplayer" controls></video>
+<button onclick="createOffer()">CreateOffer</button>
+<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+<!-- mediaelement-and-player.js 来自https://github.com/kobegan/mediaelement -->
+<script src="mediaelement-and-player.js"></script>
+<script>
+    let player;
+    $(function () {
+        mejs.i18n.language('zh-cn');
+
+        // 这里的channel为启动webrtc信令服务器时指定的channel名称
+        let channel = 'webrtc_test_channel';
+
+        player = new MediaElement('mediaplayer', {
+            success: function(mediaElement, originalNode) {
+                mediaElement.setSrc(`http://localhost:3030/${channel}.webrtc`);
+            }
+        });
+    });
+    
+    function createOffer() {
+        player.renderer.createOffer({
+            offerToReveiveVideo: true,	offerToReveiveAudio: true
+
+        });
+        document.querySelector('button').disabled = 'disabled';
+    }
+</script>
+</body>
+</html>
