@@ -4168,7 +4168,7 @@ var MediaElementPlayer = function () {
 								}
 							}, 20);
 						} catch (exp) {
-							console.log(exp);
+							
 						}
 					}
 
@@ -5854,7 +5854,7 @@ var PluginDetector = exports.PluginDetector = {
 					version = axDetect(ax);
 				}
 			} catch (e) {
-				console.log(e);
+				
 			}
 		}
 		return version;
@@ -5925,7 +5925,7 @@ var FlashMediaElementRenderer = {
 					try {
 						flash.flashApi['set_' + propName](value);
 					} catch (e) {
-						console.log(e);
+						
 					}
 				} else {
 					flash.flashApiStack.push({
@@ -5950,10 +5950,10 @@ var FlashMediaElementRenderer = {
 							try {
 								flash.flashApi['fire_' + methodName]();
 							} catch (e) {
-								console.log(e);
+								
 							}
 						} else {
-							console.log('flash', 'missing method', methodName);
+							
 						}
 					} else {
 						flash.flashApiStack.push({
@@ -6935,15 +6935,15 @@ var WebRTC = {
     load: function load(settings) {
         if (typeof io === 'undefined') {
             settings.options.adapter.path = typeof settings.options.adapter.path === 'string' ? settings.options.adapter.path : 'https://webrtc.github.io/adapter/adapter-latest.js';
-            settings.options.socket_io.path = typeof settings.options.socket_io.path === 'string' ? settings.options.socket_io.path : 'https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js';
+            settings.options.socket_io.path = typeof settings.options.socket_io.path === 'string' ? settings.options.socket_io.path : 'https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.0/socket.io.js';
 
-            var adapterLoaderPromise = (0, _dom.loadScript)(settings.options.adapter.path);
-            adapterLoaderPromise.then(function () {
+            var socketioLoaderPromise = (0, _dom.loadScript)(settings.options.socket_io.path);
+            socketioLoaderPromise.then(function () {
                 WebRTC._createPlayer(settings);
             });
 
-            WebRTC.promises.push(adapterLoaderPromise);
-            WebRTC.promises.push((0, _dom.loadScript)(settings.options.socket_io.path));
+            WebRTC.promises.push(socketioLoaderPromise);
+            WebRTC.promises.push((0, _dom.loadScript)(settings.options.adapter.path));
 
             return WebRTC.promises;
         } else {
@@ -6954,6 +6954,7 @@ var WebRTC = {
     },
 
     _createPlayer: function _createPlayer(settings) {
+        console.trace('create player');
         var peerConnection = new RTCPeerConnection();
         window['__ready__' + settings.id](peerConnection);
         return peerConnection;
@@ -7092,6 +7093,10 @@ var WebRTCRender = {
                     data: data
                 });
             });
+
+            socket.on('connected', function (data) {
+                
+            });
         };
 
         function handUp() {
@@ -7143,6 +7148,10 @@ var WebRTCRender = {
                                 handUp();
                                 throw error;
                             });
+
+                            socket.on('connected', function (data) {
+                                
+                            });
                         }
                     } else {
                         node[propName] = value;
@@ -7177,6 +7186,10 @@ var WebRTCRender = {
             socket.on('connect_error', function (error) {
                 handUp();
                 throw error;
+            });
+
+            socket.on('connected', function (data) {
+                
             });
         };
 
@@ -7514,7 +7527,7 @@ var YouTubeIframeRenderer = {
 							mediaElement.dispatchEvent(event);
 							break;
 						default:
-							console.log('youtube ' + youtube.id, propName, 'UNSUPPORTED property');
+							
 							break;
 					}
 				} else {
