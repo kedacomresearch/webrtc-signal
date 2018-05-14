@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+    <title>MediaElement.js Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+<video id="mediaplayer" controls></video>
+<button onclick="createOffer()">CreateOffer</button>
+<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+<!-- mediaelement-and-player.js 来自https://github.com/kobegan/mediaelement -->
+<script src="mediaelement.js"></script>
+<script>
+    let player;
+    $(function () {
+        mejs.i18n.language('zh-cn');
+
+        // 这里的channel为启动webrtc信令服务器时指定的channel名称
+        let channel = 'livestream';
+
+        let mediaFilse = [{
+            type: 'video/webrtc',
+            src: `http://localhost:3030/${channel}.webrtc?room=ea6965e0-54e5-11e8-b8ae-15a39c3497c2`
+        }];
+
+        let options = {
+            success: function(mediaElement, originalNode) {
+                mediaElement.addEventListener('loadedmetadata', () => {
+                    console.log('loadedmetadata');
+                })
+            },
+            caller: false,
+            mediaToReveive: {
+                video: false,
+                audio: false
+            },
+            mediaToSend: {
+                video: true,
+                audio: true
+            }
+        };
+
+        player = new MediaElement('mediaplayer', options, mediaFilse);
+
+    });
+    
+    function createOffer() {
+        player.renderer.createOffer({
+            offerToReveiveVideo: true,	offerToReveiveAudio: true
+
+        });
+        document.querySelector('button').disabled = 'disabled';
+    }
+</script>
+</body>
+</html>
