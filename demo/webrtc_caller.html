@@ -11,7 +11,7 @@
 <button onclick="createOffer()">CreateOffer</button>
 <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
 <!-- mediaelement-and-player.js 来自https://github.com/kobegan/mediaelement -->
-<script src="mediaelement-and-player.js"></script>
+<script src="mediaelement.js"></script>
 <script>
     let player;
     $(function () {
@@ -20,11 +20,31 @@
         // 这里的channel为启动webrtc信令服务器时指定的channel名称
         let channel = 'livestream';
 
-        player = new MediaElement('mediaplayer', {
-            success: function(mediaElement, originalNode) {
-                mediaElement.setSrc(`http://localhost:3030/${channel}.webrtc`);
-            }
+        let mediaFilse = [];
+        mediaFilse.push({
+            type: 'video/webrtc',
+            src: `http://localhost:3030/${channel}.webrtc?room=ea6965e0-54e5-11e8-b8ae-15a39c3497c2`
         });
+
+        let options = {
+            success: function(mediaElement, originalNode) {
+                mediaElement.addEventListener('loadedmetadata', () => {
+                    console.log('loadedmetadata');
+                })
+            },
+            caller: true,
+            mediaToReveive: {
+                video: true,
+                audio: true
+            },
+            mediaToSend: {
+                video: false,
+                audio: false
+            }
+        };
+
+        player = new MediaElement('mediaplayer', options, mediaFilse);
+
     });
     
     function createOffer() {

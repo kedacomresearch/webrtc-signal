@@ -6954,7 +6954,6 @@ var WebRTC = {
     },
 
     _createPlayer: function _createPlayer(settings) {
-        console.trace('create player');
         var peerConnection = new RTCPeerConnection();
         window['__ready__' + settings.id](peerConnection);
         return peerConnection;
@@ -6983,6 +6982,7 @@ var WebRTCRender = {
     },
 
     create: function create(mediaElement, options, mediaFiles) {
+        console.dir(options);
 
         var id = mediaElement.id + '_' + options.prefix;
         var isActive = false;
@@ -7094,7 +7094,7 @@ var WebRTCRender = {
                 });
             });
 
-            socket.on('connected', function (data) {
+            socket.on('connected', function () {
                 
             });
         };
@@ -7148,10 +7148,6 @@ var WebRTCRender = {
                                 handUp();
                                 throw error;
                             });
-
-                            socket.on('connected', function (data) {
-                                
-                            });
                         }
                     } else {
                         node[propName] = value;
@@ -7174,7 +7170,7 @@ var WebRTCRender = {
             mediaElement.socket = socket = io(mediaFiles[0].src);
             socket.on('connect', onConnect);
             socket.on('disconnect', function () {
-                socket.open();
+                handUp();
             });
             socket.on('reconnect_failed', function () {
                 handUp();
@@ -7186,10 +7182,6 @@ var WebRTCRender = {
             socket.on('connect_error', function (error) {
                 handUp();
                 throw error;
-            });
-
-            socket.on('connected', function (data) {
-                
             });
         };
 
