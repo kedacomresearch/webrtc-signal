@@ -29,6 +29,7 @@
             success: function(mediaElement, originalNode) {
                 mediaElement.addEventListener('loadedmetadata', () => {
                     console.log('loadedmetadata');
+                    console.info(new Date());
                 })
             },
             caller: false,

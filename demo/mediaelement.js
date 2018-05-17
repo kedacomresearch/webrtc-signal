@@ -605,7 +605,6 @@ var MediaElement = function MediaElement(idOrNode, options, sources) {
 	options = Object.assign(t.defaults, options);
 
 	t.mediaElement = _document2.default.createElement(options.fakeNodeName);
-
 	var id = idOrNode,
 	    error = false;
 
@@ -619,7 +618,6 @@ var MediaElement = function MediaElement(idOrNode, options, sources) {
 	if (t.mediaElement.originalNode === undefined || t.mediaElement.originalNode === null) {
 		return null;
 	}
-
 	t.mediaElement.options = options;
 	id = id || 'mejs_' + Math.random().toString().slice(2);
 
@@ -627,7 +625,7 @@ var MediaElement = function MediaElement(idOrNode, options, sources) {
 
 	var tagName = t.mediaElement.originalNode.tagName.toLowerCase();
 	if (['video', 'audio'].indexOf(tagName) > -1 && !t.mediaElement.originalNode.getAttribute('preload')) {
-		t.mediaElement.originalNode.setAttribute('preload', 'none');
+		t.mediaElement.originalNode.setAttribute('preload', 'auto');
 	}
 
 	t.mediaElement.originalNode.parentNode.insertBefore(t.mediaElement, t.mediaElement.originalNode);
@@ -694,7 +692,6 @@ var MediaElement = function MediaElement(idOrNode, options, sources) {
 				break;
 		}
 	}
-
 	t.mediaElement.id = id;
 	t.mediaElement.renderers = {};
 	t.mediaElement.events = {};
@@ -962,6 +959,9 @@ var MediaElement = function MediaElement(idOrNode, options, sources) {
 	};
 
 	t.mediaElement.destroy = function () {
+		if (t.mediaElement.renderer) {
+			t.mediaElement.renderer.destroy();
+		}
 		var mediaElement = t.mediaElement.originalNode.cloneNode(true);
 		var wrapper = t.mediaElement.parentElement;
 		mediaElement.removeAttribute('id');
@@ -2688,14 +2688,14 @@ var WebRTCRender = {
 
     create: function create(mediaElement, options, mediaFiles) {
         console.dir(options);
-
         var id = mediaElement.id + '_' + options.prefix;
         var isActive = false;
 
         var node = null,
             socket = null,
             peerConnection = null,
-            canCreateOffer = false;
+            canCreateOffer = false,
+            canCreateAnswer = false;
 
         if (mediaElement.originalNode === undefined || mediaElement.originalNode === null) {
             node = document.createElement('video');
@@ -2708,20 +2708,30 @@ var WebRTCRender = {
         node.autoplay = true;
 
         var addLocalStream = function addLocalStream(peerConnection) {
-            if (options.mediaToSend.audio || options.mediaToSend.video) {
+            if (options.mediaToSend.audio === 'true' || options.mediaToSend.video === 'true') {
                 navigator.mediaDevices.getUserMedia({
-                    audio: options.mediaToSend ? options.mediaToSend.audio ? options.mediaToSend.audio : false : false,
-                    video: options.mediaToSend ? options.mediaToSend.video ? options.mediaToSend.video : false : false
+                    audio: options.mediaToSend.audio === 'true',
+                    video: options.mediaToSend.video === 'true'
                 }).then(gotStream).catch(function (e) {
                     console.error('getUserMedia() error: ' + e.message);
                 });
+            } else {
+                if (options.caller === 'true') {
+                    canCreateOffer = true;
+                } else {
+                    canCreateAnswer = true;
+                }
             }
             function gotStream(stream) {
                 console.info('got local stream');
                 stream.getTracks().forEach(function (track) {
                     peerConnection.addTrack(track, stream);
                 });
-                canCreateOffer = true;
+                if (options.caller === 'true') {
+                    canCreateOffer = true;
+                } else {
+                    canCreateAnswer = true;
+                }
             }
         },
             onTrack = function onTrack(peerConnection) {
@@ -2729,6 +2739,7 @@ var WebRTCRender = {
                 if (node.srcObject !== e.streams[0]) {
                     node.srcObject = e.streams[0];
                     console.info('received remote stream');
+                    console.info(new Date());
                 }
             };
         },
@@ -2770,13 +2781,20 @@ var WebRTCRender = {
         }
 
         function handleOffer(offer) {
-            peerConnection.setRemoteDescription(offer).then(function () {
-                peerConnection.createAnswer().then(onCreateAnswerSuccess, function () {
-                    console.info('Failed to create session description: ' + error.toString());
-                });
-            }, function (error) {
+            peerConnection.setRemoteDescription(offer).then(createAnswer, function (error) {
                 console.error('Failed to set session description: ' + error.toString());
             });
+
+            function createAnswer() {
+                var timeout = setInterval(function () {
+                    if (canCreateAnswer) {
+                        peerConnection.createAnswer().then(onCreateAnswerSuccess, function () {
+                            console.info('Failed to create session description: ' + error.toString());
+                        });
+                        clearInterval(timeout);
+                    }
+                }, 1000);
+            }
 
             function onCreateAnswerSuccess(answer) {
                 peerConnection.setLocalDescription(answer);
@@ -2796,7 +2814,6 @@ var WebRTCRender = {
 
         var onConnect = function onConnect() {
             console.info('=========on socket connected==========');
-            console.info(new Date());
 
             socket.on('sdp', function (data) {
                 onSocketMessage({
@@ -2812,15 +2829,21 @@ var WebRTCRender = {
                         node.createOffer();
                         clearInterval(timeout);
                     }
-                }, 2000);
+                }, 1000);
             });
         };
 
         function handUp() {
             canCreateOffer = false;
+            canCreateAnswer = false;
             if (mediaElement.peerConnection) {
                 mediaElement.peerConnection.close();
                 mediaElement.peerConnection = null;
+            }
+
+            if (socket) {
+                socket.close();
+                socket = null;
             }
         }
 
@@ -2873,7 +2896,7 @@ var WebRTCRender = {
                         }
                         if (socket !== null) {
                             socket.close();
-                            socket = io(value);
+                            socket = io(value, { forceNew: true });
                             socketInit(socket);
                         }
                     } else {
@@ -2891,7 +2914,7 @@ var WebRTCRender = {
             mediaElement.peerConnection = peerConnection = _peerConnection;
             peerConnectionInit(peerConnection);
 
-            mediaElement.socket = socket = io(mediaFiles[0].src);
+            mediaElement.socket = socket = io(mediaFiles[0].src, { forceNew: true });
             socketInit(socket);
         };
 
@@ -2932,6 +2955,7 @@ var WebRTCRender = {
         };
 
         node.destroy = function () {
+            console.trace('render destroy!');
             if (peerConnection !== null) {
                 peerConnection.close();
             }
@@ -2943,8 +2967,8 @@ var WebRTCRender = {
         node.createOffer = function () {
             console.info('create offer');
             peerConnection.createOffer({
-                offerToReveiveVideo: options.mediaToSend ? options.mediaToReveive.video ? options.mediaToReveive.video : false : false,
-                offerToReveiveAudio: options.mediaToSend ? options.mediaToReveive.audio ? options.mediaToReveive.audio : false : false
+                offerToReveiveVideo: options.mediaToReveive ? options.mediaToReveive.video === 'true' : false,
+                offerToReveiveAudio: options.mediaToReveive ? options.mediaToReveive.audio === 'true' : false
             }).then(onCreateOfferSuccess, function (error) {
                 console.error('Failed to create session description: ' + error.toString());
             });
