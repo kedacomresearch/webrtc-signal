@@ -25,10 +25,15 @@ io.of(`${channel}.webrtc`).on('connection', function(socket) {
     } else {
         let roomId = socket.handshake.query.room;
 
+        if(roomManager[`${roomId}`] && roomManager[`${roomId}`].numberCount && roomManager[`${roomId}`].numberCount === 2) {
+            socket.emit('disconnect', 'room members is enough, not allowed to enter anymore!');
+            socket.disconnect(true);
+            return;
+        }
+
         socket.join(`${roomId}`, (err) => {
             if(err) {
                 throw err;
-                return;
             }
             socket.roomId = roomId;
             console.info(`Join room ${socket.roomId}`);
@@ -55,10 +60,21 @@ io.of(`${channel}.webrtc`).on('connection', function(socket) {
 
         socket.on('disconnect', (reason) => {
             console.log(reason);
-            roomManager[`${socket.roomId}`].numberCount--;
-            //send it to other clients in this room
-            //socket.broadcast.to(`${socket.roomId}`).emit('disconnect', reason);
-            socket.leave(`${socket.roomId}`);
+            socket.leave(`${socket.roomId}`, (err) => {
+                if(err)
+                    throw err;
+                roomManager[`${socket.roomId}`].numberCount--;
+                io.of(`${channel}.webrtc`).to(`${socket.roomId}`).clients( (err, clients) => {
+                    if(err)
+                        throw err;
+                    console.log(clients);
+                    if(clients.length > 0) {
+                        //send it to other clients in this room
+                        socket.broadcast.to(`${socket.roomId}`).emit('leave', reason);
+                    }
+                });
+
+            });
         });
     }
 
