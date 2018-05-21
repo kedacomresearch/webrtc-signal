@@ -4,6 +4,10 @@
 const app = require('http').createServer();
 const io = require('socket.io')(app);
 const uuid = require('uuid/v1');
+const logger = require('winston');
+
+// To see more detailed messages, uncomment the following line
+// logger.level = 'info';
 
 let channel = 'livestream';
 
@@ -33,7 +37,8 @@ io.of(`${channel}.webrtc`).on('connection', function(socket) {
 
         socket.join(`${roomId}`, (err) => {
             if(err) {
-                throw err;
+                logger.error(err.message);
+                return;
             }
             socket.roomId = roomId;
             console.info(`Join room ${socket.roomId}`);
@@ -44,30 +49,29 @@ io.of(`${channel}.webrtc`).on('connection', function(socket) {
             } else {
                 roomManager[`${socket.roomId}`].numberCount++;
             }
-            console.info('numberCount： ' + roomManager[`${socket.roomId}`].numberCount);
+            logger.debug('numberCount： ' + roomManager[`${socket.roomId}`].numberCount);
 
             if(roomManager[`${socket.roomId}`].numberCount === 2) {
-                console.info('connected');
+                logger.debug('connected');
                 io.of(`${channel}.webrtc`).to(`${socket.roomId}`).emit('connected');
             }
         });
 
         socket.on('sdp', function (data) {
             //send it to other clients in this room
-            console.dir(data);
+            logger.debug(data);
             socket.broadcast.to(`${socket.roomId}`).emit('sdp', data);
         });
 
         socket.on('disconnect', (reason) => {
-            console.log(reason);
+            logger.debug(reason);
             socket.leave(`${socket.roomId}`, (err) => {
                 if(err)
                     throw err;
                 roomManager[`${socket.roomId}`].numberCount--;
                 io.of(`${channel}.webrtc`).to(`${socket.roomId}`).clients( (err, clients) => {
                     if(err)
-                        throw err;
-                    console.log(clients);
+                        logger.error(err.message);
                     if(clients.length > 0) {
                         //send it to other clients in this room
                         socket.broadcast.to(`${socket.roomId}`).emit('leave', reason);
