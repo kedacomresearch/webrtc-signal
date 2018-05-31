@@ -7,7 +7,7 @@ const uuid = require('uuid/v1');
 const logger = require('winston');
 
 // To see more detailed messages, uncomment the following line
-// logger.level = 'info';
+logger.level = 'debug';
 
 let channel = 'livestream';
 
@@ -41,7 +41,7 @@ io.of(`${channel}.webrtc`).on('connection', function(socket) {
                 return;
             }
             socket.roomId = roomId;
-            console.info(`Join room ${socket.roomId}`);
+            logger.debug(`Join room ${socket.roomId}`);
             if(!roomManager[`${socket.roomId}`]) {
                 roomManager[`${socket.roomId}`] = {
                     numberCount: 1
@@ -82,4 +82,67 @@ io.of(`${channel}.webrtc`).on('connection', function(socket) {
         });
     }
 
+});
+
+const spectrumNamespace = `${channel}.spectrum`;
+
+io.of(spectrumNamespace).on('connection', (socket) => {
+
+    if(!socket.handshake.query.audienceId) {
+        socket.emit('error', 'handshake query param "livestreamId" and "audienceId" are supposed to be provided');
+    } else {
+        let audienceId = socket.handshake.query.audienceId;
+
+        if(roomManager[`${audienceId}`] && roomManager[`${audienceId}`].numberCount && roomManager[`${audienceId}`].numberCount === 2) {
+            socket.emit('disconnect', 'room members is enough, not allowed to enter anymore!');
+            socket.disconnect(true);
+            return;
+        }
+
+        socket.join(`${audienceId}`, (err) => {
+            if(err) {
+                logger.error(err.message);
+                return;
+            }
+            socket.audienceId = audienceId;
+            logger.debug(`Join room ${socket.audienceId}`);
+            if(!roomManager[`${socket.audienceId}`]) {
+                roomManager[`${socket.audienceId}`] = {
+                    numberCount: 1
+                };
+            } else {
+                roomManager[`${socket.audienceId}`].numberCount++;
+            }
+            logger.debug('numberCount： ' + roomManager[`${socket.audienceId}`].numberCount);
+
+            if(roomManager[`${socket.audienceId}`].numberCount === 2) {
+                logger.debug('connected');
+                io.of(spectrumNamespace).to(`${socket.audienceId}`).emit('connected');
+            }
+        });
+
+        socket.on('spectrum', function (data) {
+            //send it to other clients in this room
+            logger.debug(data);
+            socket.broadcast.to(`${socket.audienceId}`).emit('spectrum', data);
+        });
+
+        socket.on('disconnect', (reason) => {
+            logger.debug(reason);
+            socket.leave(`${socket.audienceId}`, (err) => {
+                if(err)
+                    throw err;
+                roomManager[`${socket.audienceId}`].numberCount--;
+                io.of(spectrumNamespace).to(`${socket.audienceId}`).clients( (err, clients) => {
+                    if(err)
+                        logger.error(err.message);
+                    if(clients.length > 0) {
+                        //send it to other clients in this room
+                        socket.broadcast.to(`${socket.audienceId}`).emit('leave', reason);
+                    }
+                });
+
+            });
+        });
+    }
 });
